@@ -27,12 +27,15 @@ class Reviewer:
             self.negpos_bids += 1
     
     def report(self):
-        print('Reviewer {} <{}> has {} positive bids and {} positive bids with negative topic score'.format(self.name, self.email, self.positive_bids, self.negpos_bids))
+        resp = ''
         for author in self.bids:
             if self.bids[author] >= self.positive_bids*0.20:
-                print('- {} of the positive bids went to {}'.format(self.bids[author], author))
+                resp += '- {} of the positive bids went to {}\n'.format(self.bids[author], author)
             if self.bids[author] >= 3:
-                print('- {} of the positive bids went to {}'.format(self.bids[author], author))
+                resp += '- {} of the positive bids went to {}\n'.format(self.bids[author], author)
+        if len(resp) != 0:
+            print('Reviewer {} <{}> has {} positive bids and {} positive bids with negative topic score'.format(self.name, self.email, self.positive_bids, self.negpos_bids))
+            print(resp[:-1])
 
 
 def read_papers(papers_csv):
