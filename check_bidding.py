@@ -11,7 +11,8 @@ class Reviewer:
         self.email = email
         self.positive_bids = 0
         self.negpos_bids = 0
-        self.bids = {}
+        self.bids = {} # map with author -> array of positive preferences
+        self.preferences = [] # array with all positive preferences
     
     def add_bid(self, paper_authors, preference, topic_score):
         if preference > 0:
@@ -19,20 +20,42 @@ class Reviewer:
             self.positive_bids += 1
             for author in paper_authors:
                 if author in self.bids:
-                    self.bids[author] += 1
+                    self.bids[author].append(preference)
                 else:
-                    self.bids[author] = 1
+                    self.bids[author] = [preference]
+            self.preferences.append(preference)
         if topic_score < 0 and preference > 0:
             # topic score says nay but preference says yay
             self.negpos_bids += 1
     
-    def report(self):
+    def report(self, nr_papers):
         resp = ''
+        # check ratio of positive bids
+        if self.positive_bids <= nr_papers*0.10:
+            resp += '- only {:.2f}% of bids were positive out of {} papers!\n'.format(self.positive_bids/float(nr_papers)*100, nr_papers)
+
+        # check general statistics (if a single author received more than a percentage of positive bids)
         for author in self.bids:
-            if self.bids[author] >= self.positive_bids*0.20:
-                resp += '- {} of the positive bids went to {}\n'.format(self.bids[author], author)
-            if self.bids[author] >= 3:
-                resp += '- {} of the positive bids went to {}\n'.format(self.bids[author], author)
+            if len(self.bids[author]) >= self.positive_bids*0.20:
+                resp += '- {} of the positive bids went to {} ({})\n'.format(len(self.bids[author]), author, self.bids[author])
+            if len(self.bids[author]) >= 3:
+                resp += '- {} of the positive bids went to {} ({})\n'.format(len(self.bids[author]), author, self.bids[author])
+
+        pos_bids = sorted(self.preferences, reverse=True)
+        ind = len(pos_bids)
+        #ind = min(20, len(pos_bids))
+        #while len(pos_bids) > ind+1 and pos_bids[ind] == pos_bids[ind+1]:
+        #    ind+=1
+        #pos_bids = pos_bids[0:ind]
+        BX = sum(pos_bids)
+        for author in self.bids:
+            pos_author_bids = [i for i in self.bids[author] if i >= pos_bids[-1]]
+            if len(pos_author_bids) == 0:
+                continue
+            BXY = sum(pos_author_bids)
+            BAI = (float(BXY)/len(pos_author_bids))/(float(BX)/len(pos_bids))
+            if BAI > 2.0:
+                resp += '- bidding affinity is high for {}: {:.2f}\n'.format(author, BAI)
         if len(resp) != 0:
             print('Reviewer {} <{}> has {} positive bids and {} positive bids with negative topic score'.format(self.name, self.email, self.positive_bids, self.negpos_bids))
             print(resp[:-1])
@@ -89,4 +112,4 @@ if __name__ == '__main__':
     reviewers = read_prefs(sys.argv[2], paper_authors)
 
     for reviewer in sorted(reviewers):
-        reviewers[reviewer].report()
+        reviewers[reviewer].report(len(paper_authors))
